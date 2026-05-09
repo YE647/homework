@@ -1,0 +1,121 @@
+实验1: Arduino IDE 安装与 ESP32 环境配置 ESP32 开发入门指南（工作目录）
+一、实验准备
+1.1 硬件准备
+计算机（Windows/Mac/Linux）
+ESP32 开发板
+USB-C 数据线
+可选：外设组件（LED、电阻、面包板等）
+1.2 软件准备
+Arduino IDE 安装包
+稳定的网络连接（用于下载开发板支持包）
+二、Arduino IDE 安装步骤 (Windows)
+2.1 下载安装包
+访问 Arduino 官网（或在提供的文件中找到 Windows_64 安装包）。
+选择 Windows 安装包。
+可选：选择 Windows ZIP 非安装版（便携式）。
+2.2 安装过程
+运行下载的 exe 安装文件。
+同意许可协议。
+选择安装组件（建议全选）：
+o安装 Arduino IDE
+o创建开始菜单快捷方式
+o创建桌面快捷方式
+o关联 .ino 文件
+选择安装路径（默认：C:\Program Files (x86)\Arduino\；也可更改为 D 盘）。
+等待安装完成。
+安装 USB 驱动。
+2.3 首次启动配置
+启动 Arduino IDE。
+设置界面语言：File → Preferences → Language。
+配置编辑器字体和大小：File → Preferences。
+三、ESP32 开发环境配置
+3.1 添加 ESP32 开发板支持
+a. 打开首选项设置
+File → Preferences，找到 "Additional Boards Manager URLs"。
+b. 添加 ESP32 开发板管理器 URL
+添加以下 URL（可同时添加多个，用逗号分隔）：
+https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+https://dl.espressif.com/dl/package_esp32_index.json
+c. 安装 ESP32 开发板支持包
+工具 → 开发板 → 开发板管理器。
+搜索 "esp32"。
+选择 "esp32 by Espressif Systems"。
+点击安装（选择最新稳定版本）。
+等待安装完成（需要较长时间，约 10-30 分钟）。
+3.2 安装 USB 驱动 (Windows)
+开发板接口采用CH340芯片，安装步骤如下：
+CH340 驱动下载并解压。
+运行安装程序（如 CH341SER.EXE）。
+完成安装后，重新连接 ESP32 开发板。
+在设备管理器中确认 COM 端口识别成功。
+3.3 配置 ESP32 开发环境
+a. 选择开发板
+工具 → 开发板 → ESP32 Arduino → 选择对应型号。
+注意：本开发板为 ESP32 兼容开发板，可以选择 "ESP32 Dev Module"。
+b. 重要配置项
+在工具菜单（Tools）中配置：
+Upload Speed: 921600（或 115200）
+Flash Frequency: 80MHz
+Flash Mode: QIO
+Partition Scheme: Default 4MB with spiffs
+Core Debug Level: None
+PSRAM: Disabled（如开发板无 PSRAM）
+四、测试环境配置
+4.1 基础连接测试
+连接 ESP32 开发板：使用 USB-C 线连接电脑。
+观察设备管理器/系统信息确认串口识别。
+选择串口：工具 → 端口 → 选择对应 COM 端口（Windows）。
+4.2 上传测试程序
+a. 创建测试程序
+新建文件，输入以下代码（功能：验证 Arduino IDE + ESP32 环境是否配置成功）：
+// 定义板载LED引脚，避免使用"魔法数字"
+#define LED_PIN 2
+
+void setup() {
+  // 初始化串口通信
+  Serial.begin(115200);
+  // 初始化板载LED引脚为输出模式
+  pinMode(LED_PIN, OUTPUT); 
+}
+
+void loop() {
+  Serial.println("Hello ESP32!");
+  digitalWrite(LED_PIN, HIGH);   // 点亮LED
+  delay(1000);                   // 等待1秒
+  digitalWrite(LED_PIN, LOW);    // 熄灭LED
+  delay(1000);              // 等待1秒
+}
+💡 编程小知识：#define vs const int
+在定义引脚时，通常有两种方式，本教程采用第一种（宏定义）：
+#define LED_PIN 2 (宏定义)：预处理指令。编译器在编译前单纯进行文本替换（把代码中所有的 LED_PIN 换成 2）。不占用程序内存，是传统的 C 语言写法。
+const int ledPin = 2; (常量变量)：变量声明。定义了一个只读的整数变量。有类型检查，更安全，是现代 C++ 推荐的写法。
+在嵌入式开发中两者都很常见，为了节省极其有限的内存资源，老派程序员更倾向于使用 #define。
+b. 上传程序
+点击 "→" 上传按钮。
+观察上传过程（可能需要按住 BOOT/EN 按钮）。
+成功提示："Done uploading"。
+c. 观察结果
+串口监视器： 点击右上角 "Serial Monitor"，设置波特率为 115200，观察输出信息。
+硬件现象： ESP32 板载 LED 每秒闪烁一次。
+五、常见问题解决
+5.1 上传失败问题
+问题1： A fatal error occurred: Failed to connect to ESP32
+解决： 按住 BOOT 按钮，点击上传，当出现 "Connecting..." 时松开。
+问题2： Timed out waiting for packet header
+解决： 降低上传波特率（921600 → 115200）。
+5.2 驱动问题
+问题： 端口不显示或显示为未知设备
+解决：
+1.检查 USB 线是否支持数据传输。
+2.重新安装 USB 驱动。
+3.尝试不同 USB 端口。
+5.3 编译问题
+问题： 编译错误，缺少库文件
+解决：
+1.清理临时文件（项目 → 清理）。
+2.重启 Arduino IDE。
+3.重新安装 ESP32 开发板支持。
+六、课后思考
+🤔 思考题：
+Arduino IDE 的 "串口监视器" (Serial Monitor) 中的波特率 (Baud Rate) 如果设置得和代码中 Serial.begin(115200) 不一致，会发生什么现象？为什么？
+尝试修改代码中的 delay(1000) 数值，观察 LED 闪烁频率的变化。
