@@ -1,0 +1,105 @@
+实验2: 基础IO实验 - LED闪烁控制
+掌握 ESP32 GPIO 输出控制基本方法
+
+一、实验目标
+使用 ESP32 开发板自带的 LED 灯（通常连接在 GPIO2），实现最基本的 LED 点亮和熄灭控制。
+
+二、实验器材
+ESP32 开发板 ×1
+USB-C 数据线 ×1
+电脑（已安装 Arduino IDE） ×1
+三、实验步骤
+步骤1：硬件确认
+观察 ESP32 开发板，找到板载 LED。
+确认 LED 位置（通常位于 USB 接口附近，标注为 "ON" 或 "LED"）。
+使用 USB 线连接 ESP32 和电脑。
+观察板载 LED 是否亮起（电源指示灯）。
+步骤2：软件准备
+打开 Arduino IDE
+设置开发板类型：工具 → 开发板 → ESP32 Arduino → ESP32 Dev Module
+选择端口：工具 → 端口 → 选择对应的 COM 端口（Windows）
+步骤3：编写点灯程序
+创建新项目：
+
+点击 "文件" → "新建"。
+复制以下代码到编辑区：
+// 定义LED引脚，ESP32通常板载LED连接在GPIO 2
+const int ledPin = 2; 
+
+void setup() {
+  // 初始化串口通信，设置波特率为115200
+  Serial.begin(115200);
+  // 将LED引脚设置为输出模式
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(ledPin, HIGH);  // 点亮LED
+  Serial.println("LED ON");    // 串口输出提示
+  delay(1000);                 // 保持1秒（1000毫秒）
+  
+  digitalWrite(ledPin, LOW);   // 熄灭LED
+  Serial.println("LED OFF");   // 串口输出提示
+  delay(1000);                 // 保持1秒
+}
+步骤4：上传程序
+点击上传按钮（→）。
+观察上传过程：
+如果出现 "上传失败"，尝试按住 BOOT 按钮再点击上传。
+等待直到看到 "上传成功"（Done uploading）提示。
+观察板载 LED 是否开始闪烁。
+步骤5：观察效果与调试
+观察 LED 变化：
+LED 应亮 1 秒，灭 1 秒。
+循环往复，形成闪烁效果。
+打开串口监视器：
+点击右上角 "串口监视器" 图标。
+设置波特率为 115200。
+观察输出的 "LED ON" 和 "LED OFF" 信息。
+修改闪烁频率：
+修改代码中 delay(1000) 的数值。
+数值变小 → 闪烁变快。
+数值变大 → 闪烁变慢。
+重新上传观察效果变化。
+步骤6：进阶实验
+SOS 求救信号模式： 基于摩尔斯电码（三短、三长、三短），尝试修改代码实现 SOS 信号灯。
+
+// SOS 示例思路
+// S: 短闪3次
+for(int i=0; i<3; i++) { digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200); }
+delay(500); // 字母间隔
+// O: 长闪3次
+for(int i=0; i<3; i++) { digitalWrite(ledPin, HIGH); delay(600); digitalWrite(ledPin, LOW); delay(200); }
+delay(500);
+// S: 短闪3次
+for(int i=0; i<3; i++) { digitalWrite(ledPin, HIGH); delay(200); digitalWrite(ledPin, LOW); delay(200); }
+delay(2000); // 单词间隔
+四、常见问题及解决
+问题1：LED 不亮
+
+检查是否选择正确的开发板型号。
+确认 GPIO 引脚定义是否正确（有些板子 LED 不在 GPIO2）。
+尝试其他 GPIO 引脚（如 GPIO13）。
+检查代码中 pinMode 是否正确设置。
+问题2：LED 常亮不闪烁
+
+检查 delay() 函数参数是否正确。
+确认 digitalWrite(LOW) 是否正确执行。
+检查是否有其他程序控制该引脚。
+问题3：上传失败
+
+按住 BOOT 按钮再点击上传。
+检查 USB 线是否支持数据传输。
+重新选择正确的 COM 端口。
+重启 Arduino IDE。
+五、实验总结
+知识点掌握
+GPIO 输出控制： 学习如何设置引脚为输出模式。
+digitalWrite 函数： 掌握 HIGH 和 LOW 电平输出。
+delay 函数： 理解延时函数的作用和单位（毫秒）。
+串口通信： 学习使用 Serial 进行调试输出。
+六、课后思考
+🤔 思考题：
+
+频率控制： 如果将 delay(1000) 改为 delay(10)，你会观察到什么现象？人眼还能分辨出闪烁吗？（提示：视觉暂留效应）
+交替闪烁： 如果你在 GPIO 4 上也连接了一个 LED（注意需串联限流电阻），如何修改代码让 GPIO 2 和 GPIO 4 的两个 LED 交替闪烁（一个亮时另一个灭）？
