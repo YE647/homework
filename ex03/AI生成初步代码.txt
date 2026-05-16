@@ -1,0 +1,51 @@
+const int ledPin = 2;
+bool ledState = LOW;
+unsigned long previousMillis = 0;
+
+// 定义SOS时间（毫秒）
+const int SHORT = 200;   // 短闪
+const int LONG  = 600;   // 长闪
+const int GAP   = 200;   // 闪与闪之间间隔
+const int END   = 2000;  // 一轮SOS结束停顿
+
+// SOS信号序列：0=短 1=长
+int sosPattern[] = {0,0,0, 1,1,1, 0,0,0};
+int patternIndex = 0;
+int patternLength = sizeof(sosPattern) / sizeof(sosPattern[0]);
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= GAP) {
+    previousMillis = currentMillis;
+
+    // 亮灯
+    if (ledState == LOW) {
+      ledState = HIGH;
+      digitalWrite(ledPin, HIGH);
+    }
+    // 灭灯 + 切换下一个信号
+    else {
+      ledState = LOW;
+      digitalWrite(ledPin, LOW);
+
+      if (sosPattern[patternIndex] == 0) {
+        previousMillis += SHORT;
+      } else {
+        previousMillis += LONG;
+      }
+
+      patternIndex++;
+
+      // 一轮SOS播完，重置并加长停顿
+      if (patternIndex >= patternLength) {
+        patternIndex = 0;
+        previousMillis += END;
+      }
+    }
+  }
+}
