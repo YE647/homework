@@ -1,0 +1,89 @@
+## 1. 函数原型（官方）
+```cpp
+unsigned long millis();
+```
+- 头文件：`#include <Arduino.h>`（IDE 默认包含）
+- 所属：时间函数库（Time）
+
+---
+
+## 2. 功能描述（官方）
+**返回自 Arduino 上电/复位开始运行当前程序以来的毫秒数。**
+- 单位：**ms（毫秒）**，1s = 1000ms
+- 返回值类型：**unsigned long（无符号长整型，32位）**
+- 最大值：$2^{32}-1$ = **4,294,967,295 ms**
+- 溢出时间：约 **49.7 天**，溢出后自动回 0
+- 精度：1ms（16MHz AVR 实际约 1.024ms，长期自校准）
+
+---
+
+## 3. 工作原理（简单说）
+- Arduino（UNO/Nano）靠 **Timer0 定时器溢出中断** 累加计数
+- 每进一次中断，内部计数器 +1，`millis()` 只读这个计数器
+- **非阻塞**：调用 `millis()` 只读数，**不耽误程序跑别的事**（和 `delay()` 完全不同）
+
+---
+
+## 4. 关键特性（考试/实验必记）
+1. **返回值必须用 unsigned long 存**  
+   用 int/long 会溢出、符号错误，导致时间判断完全乱掉
+   ```cpp
+   unsigned long now = millis(); // ✅
+   int t = millis();              // ❌ 溢出、截断
+   ```
+
+2. **溢出自动回 0，减法依然正确**  
+   只要用 `unsigned long`，`当前 - 上次` 永远得到**正确间隔**（不用处理溢出）
+
+3. **和 delay() 的区别**
+   - `delay(1000)`：**阻塞**，干等 1 秒，期间啥也不能干
+   - `millis()`：**非阻塞**，只看时间，程序继续跑，适合多任务
+
+---
+
+## 5. 基础示例（串口打印运行时间）
+```cpp
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  unsigned long t = millis();
+  Serial.print("运行时间(ms): ");
+  Serial.println(t);
+  delay(1000); // 这里仅为串口不要刷屏
+}
+```
+
+---
+
+## 6. 实验 6 直接可用：millis() 实现 1Hz 闪烁（非阻塞）
+1Hz = 亮 500ms + 灭 500ms  
+```cpp
+const int ledPin = 13;
+
+unsigned long previousMillis = 0;
+const long interval = 500; // 500ms 翻转一次
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;   // 更新上次时间
+    digitalWrite(ledPin, !digitalRead(ledPin)); // 翻转LED
+  }
+  // 这里可以加别的任务，不会被耽误
+}
+```
+
+---
+
+## 7. 常见易错点（实验避坑）
+- ❌ 用 `int` 存 `millis()` 结果 → 时间很快溢出错乱
+- ❌ 用 `signed long` → 差为负数时判断错误
+- ❌ 把 `previousMillis` 放 loop 里定义 → 每次都重置，永远不触发
+- ✅ 全局/静态变量存 `previousMillis`，`unsigned long` 类型
