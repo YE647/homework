@@ -1,0 +1,25 @@
+// 定义LED引脚
+const int ledPin = 2;
+
+// 状态变量
+bool ledState = LOW;
+unsigned long previousMillis = 0;
+
+// 闪烁间隔 500ms翻转一次实现周期1秒
+const long interval = 500;
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  // 获取当前时间
+  unsigned long currentMillis = millis();
+
+  // 时间到 → 翻转LED
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    ledState = !ledState;
+    digitalWrite(ledPin, ledState);
+  }
+}
