@@ -1,0 +1,105 @@
+#define LED_PIN 2  // ESP32板载LED
+
+// 时间定义（毫秒）
+const unsigned long DOT = 200;    // 短亮
+const unsigned long DASH = 600;   // 长亮
+const unsigned long GAP = 200;    // 间隔灭
+const unsigned long SOS_END = 2000; // 一组结束灭
+
+// 状态机
+enum { 
+  DOT_ON, DOT_OFF,    // 短闪
+  DASH_ON, DASH_OFF,  // 长闪
+  PAUSE               // 结束停顿
+} state = DOT_ON;
+
+unsigned long prevTime = 0;
+int dotCount = 0;  // 短闪计数
+int dashCount = 0; // 长闪计数
+bool secondShort = false; // 是否是第二次短闪（SOS最后3短）
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+}
+
+void loop() {
+  unsigned long now = millis();
+
+  switch (state) {
+    // 短亮
+    case DOT_ON:
+      if (now - prevTime >= DOT) {
+        digitalWrite(LED_PIN, LOW);
+        prevTime = now;
+        state = DOT_OFF;
+      } else {
+        digitalWrite(LED_PIN, HIGH);
+      }
+      break;
+
+    // 短灭
+    case DOT_OFF:
+      if (now - prevTime >= GAP) {
+        prevTime = now;
+        dotCount++;
+        
+        if (!secondShort) {
+          // 第一次短闪：3次 → 长闪
+          if (dotCount < 3) {
+            state = DOT_ON;
+          } else {
+            dotCount = 0;
+            state = DASH_ON;
+          }
+        } else {
+          // 第二次短闪：3次 → 结束停顿
+          if (dotCount < 3) {
+            state = DOT_ON;
+          } else {
+            dotCount = 0;
+            secondShort = false;
+            state = PAUSE;
+          }
+        }
+      }
+      break;
+
+    // 长亮
+    case DASH_ON:
+      if (now - prevTime >= DASH) {
+        digitalWrite(LED_PIN, LOW);
+        prevTime = now;
+        state = DASH_OFF;
+      } else {
+        digitalWrite(LED_PIN, HIGH);
+      }
+      break;
+
+    // 长灭
+    case DASH_OFF:
+      if (now - prevTime >= GAP) {
+        prevTime = now;
+        dashCount++;
+        
+        if (dashCount < 3) {
+          state = DASH_ON;
+        } else {
+          dashCount = 0;
+          // 长闪结束 → 开启第二次短闪（最后3短）
+          secondShort = true;
+          state = DOT_ON;
+        }
+      }
+      break;
+
+    // 结束停顿（完全熄灭）
+    case PAUSE:
+      digitalWrite(LED_PIN, LOW);
+      if (now - prevTime >= SOS_END) {
+        prevTime = now;
+        state = DOT_ON;
+      }
+      break;
+  }
+}
