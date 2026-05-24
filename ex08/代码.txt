@@ -1,0 +1,128 @@
+#include <WiFi.h>
+#include <WebServer.h>
+
+// ===================== 配置 =====================
+const char* ssid = "你的WiFi名称";
+const char* password = "WiFi密码";
+
+WebServer server(80);
+
+// 引脚
+#define LED_PIN     2       // 报警LED
+#define TOUCH_PIN   T0      // 触摸引脚 GPIO4
+#define TOUCH_THRESHOLD 720 // 触摸灵敏度
+
+// 系统状态
+bool isArmed = false;    // 是否布防
+bool isAlarming = false;  // 是否正在报警
+
+// ===================== 网页 HTML =====================
+String getHTML() {
+  String html = "<!DOCTYPE html>";
+  html += "<html lang='zh-CN'>";
+  html += "<head><meta charset='utf-8'>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  html += "<title>ESP32 物联网安防报警器</title>";
+  
+  // 样式
+  html += "<style>";
+  html += "body{text-align:center; font-family:Arial; margin-top:60px;}";
+  html += ".btn{padding:18px 40px; font-size:22px; margin:20px; border:none; border-radius:10px; color:white; cursor:pointer;}";
+  html += ".arm{background:#27ae60;}";
+  html += ".disarm{background:#e74c3c;}";
+  html += ".status{font-size:24px; margin:30px 0;}";
+  html += "</style>";
+  
+  html += "</head><body>";
+  html += "<h1>ESP32 物联网安防报警器</h1>";
+  
+  // 状态显示
+  html += "<div class='status'>系统状态：";
+  if (isArmed) {
+    html += "<span style='color:red;'>✅ 已布防</span>";
+  } else {
+    html += "<span style='color:blue;'>🛡️ 已撤防</span>";
+  }
+  html += "</div>";
+
+  // 报警状态
+  html += "<div class='status'>报警状态：";
+  if (isAlarming) {
+    html += "<span style='color:red; font-weight:bold;'>🚨 报警中！</span>";
+  } else {
+    html += "<span>正常</span>";
+  }
+  html += "</div>";
+  
+  // 按钮
+  html += "<button class='btn arm' onclick='window.location=\"/arm\"'>布防 (Arm)</button>";
+  html += "<button class='btn disarm' onclick='window.location=\"/disarm\"'>撤防 (Disarm)</button>";
+  
+  html += "</body></html>";
+  return html;
+}
+
+// ===================== 首页 =====================
+void handleRoot() {
+  server.send(200, "text/html", getHTML());
+}
+
+// ===================== 布防 =====================
+void handleArm() {
+  isArmed = true;
+  isAlarming = false; // 布防时重置报警
+  server.send(200, "text/html", getHTML());
+}
+
+// ===================== 撤防 =====================
+void handleDisarm() {
+  isArmed = false;
+  isAlarming = false; // 撤防同时停止报警
+  digitalWrite(LED_PIN, LOW);
+  server.send(200, "text/html", getHTML());
+}
+
+// ===================== SETUP =====================
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+
+  // 连接WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("");
+  Serial.println("WiFi 连接成功！");
+  Serial.println("访问IP：" + WiFi.localIP().toString());
+
+  // 路由
+  server.on("/", handleRoot);
+  server.on("/arm", handleArm);
+  server.on("/disarm", handleDisarm);
+  
+  server.begin();
+}
+
+// ===================== LOOP 主逻辑 =====================
+void loop() {
+  server.handleClient(); // 网页服务必须运行
+
+  // ===================== 触摸报警检测（仅布防时生效） =====================
+  if (isArmed && !isAlarming) {
+    int touchVal = touchRead(TOUCH_PIN);
+    if (touchVal < TOUCH_THRESHOLD) {
+      isAlarming = true; // 触发报警，锁定！
+      Serial.println("🚨 触摸触发报警！");
+    }
+  }
+
+  // ===================== 报警闪烁（一旦触发，停不下来，除非撤防） =====================
+  if (isAlarming) {
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN)); // 翻转亮灭
+    delay(100); // 狂闪速度
+  }
+}
