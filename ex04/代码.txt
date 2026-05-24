@@ -1,0 +1,45 @@
+// 触摸自锁开关 - 完美同步版
+#define TOUCH_PIN T0       // 触摸引脚 GPIO4
+#define LED_PIN     2      // 板载LED / 外接LED都可以
+
+#define TOUCH_THRESHOLD 720  // 触摸灵敏度
+#define DEBOUNCE_TIME   150  // 防抖时间（关键！）
+
+// 状态变量
+bool ledState = LOW;
+bool lastTouched = false;
+unsigned long lastDebounce = 0;
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, ledState);
+  Serial.begin(115200);
+}
+
+void loop() {
+  int val = touchRead(TOUCH_PIN);
+  bool touched = (val < TOUCH_THRESHOLD);
+
+  // ===================== 核心修复：正确防抖 + 同步触发 =====================
+  // 只有状态稳定后才判断
+  if (millis() - lastDebounce > DEBOUNCE_TIME) {
+    
+    // 检测：从 没触摸 → 触摸 的瞬间
+    if (touched && !lastTouched) {
+      ledState = !ledState;           // 翻转LED
+      digitalWrite(LED_PIN, ledState); // 立即输出
+      lastDebounce = millis();        // 触发后立刻刷新防抖
+      
+      Serial.print("触发！LED：");
+      Serial.println(ledState ? "ON" : "OFF");
+    }
+
+    lastTouched = touched;
+  }
+
+  // 实时显示触摸值
+  Serial.print("触摸值：");
+  Serial.print(val);
+  Serial.print(" | 触摸：");
+  Serial.println(touched ? "是" : "否");
+}
