@@ -1,0 +1,69 @@
+// 定义引脚
+#define TOUCH_PIN T0      // 触摸引脚 GPIO4
+#define LED_PIN   2       // 板载LED / PWM引脚
+
+// 触摸参数
+#define TOUCH_THRESHOLD 720  // 触摸灵敏度
+#define DEBOUNCE_DELAY  150  // 防抖时间
+
+// 呼吸灯参数
+int brightness = 0;    // LED亮度
+int fadeDirection = 1; // 增减方向 1=增 / -1=减
+
+// 三档位配置（数值越大，呼吸越快）
+// 步长：每次亮度变化的大小
+int speedStep[] = {2, 5, 8};  // 档位1慢 / 档位2中 / 档位3快
+int currentGear = 1;          // 默认档位：1档
+
+// 触摸状态变量
+bool lastTouched = false;
+unsigned long lastDebounceTime = 0;
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(115200);
+  Serial.println("三档位触摸调速呼吸灯已启动！");
+  Serial.print("当前档位：");
+  Serial.println(currentGear);
+}
+
+void loop() {
+  // ===================== 触摸检测（自锁切换档位） =====================
+  int touchVal = touchRead(TOUCH_PIN);
+  bool isTouched = (touchVal < TOUCH_THRESHOLD);
+
+  // 防抖 + 边缘检测（触摸瞬间切换档位）
+  if (millis() - lastDebounceTime > DEBOUNCE_DELAY) {
+    if (isTouched && !lastTouched) {
+      // 切换档位：1→2→3→1循环
+      currentGear++;
+      if (currentGear > 3) currentGear = 1;
+      
+      // 串口提示
+      Serial.print("✅ 触摸触发！当前档位：");
+      Serial.print(currentGear);
+      Serial.print("  速度：");
+      if(currentGear==1) Serial.println("慢速呼吸");
+      if(currentGear==2) Serial.println("中速呼吸");
+      if(currentGear==3) Serial.println("快速呼吸");
+      
+      lastDebounceTime = millis(); // 更新防抖
+    }
+  }
+  lastTouched = isTouched; // 保存上一次状态
+
+  // ===================== 呼吸灯核心逻辑（根据档位调速） =====================
+  // 亮度变化
+  brightness += fadeDirection * speedStep[currentGear - 1];
+  
+  // 边界反转（0~255是PWM范围）
+  if (brightness <= 0 || brightness >= 255) {
+    fadeDirection = -fadeDirection;
+  }
+  
+  // 输出PWM亮度
+  analogWrite(LED_PIN, brightness);
+
+  // 微小延时保证呼吸流畅（不影响调速效果）
+  delay(10);
+}
